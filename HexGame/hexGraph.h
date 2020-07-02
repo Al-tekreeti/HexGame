@@ -8,13 +8,13 @@ class hexGraph
 public:
 	enum hexState { EMPTY, XPLR, OPLR };
 	hexGraph(unsigned n = 0);
-	void print();
+	void print(vector<hexState>&);
 	void hex_game();
-	bool game_over(char player);
+	bool game_over(char, vector<hexState>&);
+	unsigned plausibile_move(char, unsigned, unsigned, vector<hexState>&);//generate legal moves using monte carlo
 	~hexGraph();
 
 private:
 	unsigned nNode;
 	vector<vector<unsigned>> edgelist;
-	vector<hexState> hexplace;
 };
