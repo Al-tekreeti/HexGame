@@ -1,6 +1,5 @@
 /*
 Implementation of the hex game:
-
 */
 #include"hexGraph.h"
 #include"c:\Users\Mustafa\source\repos\Dijkstra7\Dijkstra7\ShortestPathAlgo.h"
@@ -66,7 +65,6 @@ void hexGraph::print() {
 
 bool hexGraph::game_over(char stone) {
 	hexState int_stone;
-	bool f_start = false, f_end = false;//flags
 	vector<vector<unsigned>> graph(nNode*nNode);
 	vector<unsigned> nodes(nNode*nNode);
 	unsigned k = 0;
@@ -87,76 +85,38 @@ bool hexGraph::game_over(char stone) {
 	nodes.resize(k);
 	graph.shrink_to_fit();
 	nodes.shrink_to_fit();
-	vector<unsigned> i_start(k, 0), i_end(k, 0);//indices of start and end nodes
+	vector<unsigned> i_start, i_end;//indices of start and end nodes
 	for (size_t i = 0; i < k; i++){
 		//double check whether any of the start and end nodes are among the moves 
 				if (int_stone == XPLR) {//horizontally
-					if (nodes[i] % nNode == 0){
-						if(f_start == false)
-							f_start = true;//a horizontal start node exist
-						i_start[i] = 1;//kth node is a start node
-					}
-					if ((nodes[i] + 1) % nNode == 0) {
-						if(f_end == false)
-							f_end = true;//a horizantal end node exist
-						i_end[i] = 1;//kth node is an end node
-					}
+					if (nodes[i] % nNode == 0)
+						i_start.push_back(nodes[i]);//ith node is a horizantal start node
+					if ((nodes[i] + 1) % nNode == 0) 						
+						i_end.push_back(nodes[i]);//ith node is a horizantal end node				
 				}
 				else {//vertically
-					if (nodes[i] < nNode) {
-						if(f_start == false)
-							f_start = true;//a vertical start node exist
-						i_start[i] = 1;//kth node is a start node
-					}
-					if (nodes[i] > nNode*(nNode - 1)) {
-						if(f_end == false)
-							f_end = true;//a vertical end node exist
-						i_end[i] = 1;//kth node is an end node
-					}
+					if (nodes[i] < nNode) 						
+						i_start.push_back(nodes[i]);//ith node is a vertical start node					
+					if (nodes[i] > nNode*(nNode - 1)) 					
+						i_end.push_back(nodes[i]);//ith node is a vertical end node					
 				}
 	}
-	if (f_start == false || f_end == false)
+	if (i_start.size() == 0 || i_end.size() == 0)
 		return false;//the game is for sure not over
-	////The following part can be added to the Graph class as another constructor
-	////Graph(unsigned k, vector<unsigned> nodes, vector<vector<unsigned>> graph)
-	//double** ec;//new W
-	//unsigned temp;
-	//ec = new double*[k];
-	//for (size_t i = 0; i < k; i++){
-	//	ec[i] = new double[k];
-	//	for (size_t j = 0; j < k; j++){
-	//		if (i == j) {
-	//			*(ec[i] + j) = 0;
-	//			continue;
-	//		}
-	//		else if (j > i) {
-	//			temp = nodes[j];
-	//			if (any_of(graph[i].cbegin(), graph[i].cend(), [temp](auto& ele) {return ele == temp; }))
-	//				*(ec[i] + j) = 1;
-	//			else
-	//				*(ec[i] + j) = 0;
-	//		}
-	//		else
-	//			*(ec[i] + j) = *(ec[j] + i);
-	//	}
-	//}
-	////This is the end of the constructor
-	//Graph g(k, ec);
+	//evaluate the graph using Dijkstra
 	Graph g(k, nodes, graph);
 	ShortestPathAlgo spa(g);
-	for (size_t i = 0; i < k; i++){
-		if (i_start[i] != 1)
-			continue;
-		for (size_t j = 0; j < k; j++){
-			if (i_end[j] != 1)
-				continue;
-			list<int> nlist = spa.path(i,j);
+	for (auto x:i_start) {
+		auto it_s = find(nodes.cbegin(), nodes.cend(), x);
+		auto index_s = distance(nodes.cbegin(), it_s);//index of the start node
+		for (auto y:i_end){
+			auto it_e = find(nodes.cbegin(), nodes.cend(), y);
+			auto index_e = distance(nodes.cbegin(), it_e);//index of the end node
+			list<int> nlist = spa.path(index_s,index_e);
 			if (nlist.size() != 0)
 				return true;//game over, one of the players win the game
 		}
 	}				
-	//cout << "g graph" << endl;
-	//cout << g << endl;
 	return false;//nobody win the game
 }
 
