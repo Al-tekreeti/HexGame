@@ -7,11 +7,11 @@ Implementation of the hex game:
 #include<iostream>
 #include<ctime>
 #include<random>
+#include <unordered_set>
 
-hexGraph::hexGraph(unsigned n) {
+hexGraph::hexGraph(unsigned n) {//construct the hex board with EMPTY squares
 	nNode = n;
 	edgelist.resize(nNode*nNode);
-	hexplace.resize(nNode*nNode);
 	for (size_t i = 0; i < nNode; i++)
 		for (size_t j = 0; j < nNode; j++) {
 			if (i + 1 < nNode)
@@ -26,11 +26,10 @@ hexGraph::hexGraph(unsigned n) {
 				edgelist[i*nNode + j].push_back((i + 1)*nNode + (j + 1));
 			if (i - 1 < i && j - 1 < j)
 				edgelist[i*nNode + j].push_back((i - 1)*nNode + (j - 1));
-			hexplace[i*nNode + j] = EMPTY;
 		}
 }
 
-void hexGraph::print() {
+void hexGraph::print(vector<hexState>& hexplace) {
 	for (size_t i = 0; i < nNode; i++) {
 		for (size_t k = 0; k < nNode - i; k++)
 			cout << "  ";
@@ -63,11 +62,11 @@ void hexGraph::print() {
 	}
 }
 
-bool hexGraph::game_over(char stone) {
+bool hexGraph::game_over(char stone, vector<hexState>& hexplace) {
 	hexState int_stone;
 	vector<vector<unsigned>> graph(nNode*nNode);
 	vector<unsigned> nodes(nNode*nNode);
-	unsigned k = 0;
+	unsigned k = 0;//number of nodes of the Dijksrta graph
 	if (stone == 'X')
 		int_stone = XPLR;
 	else
@@ -113,7 +112,7 @@ bool hexGraph::game_over(char stone) {
 			auto it_e = find(nodes.cbegin(), nodes.cend(), y);
 			auto index_e = distance(nodes.cbegin(), it_e);//index of the end node
 			list<int> nlist = spa.path(index_s,index_e);
-			if (nlist.size() != 0)
+			if (nlist.size() != 0)//is there any path from north (west) to south (east)
 				return true;//game over, one of the players win the game
 		}
 	}				
@@ -127,9 +126,10 @@ void hexGraph::hex_game() {
 	cout << "There are two types of stones: X and O; X is horizontally and O is vertically," << endl;
 	cout << "Good luck!" << endl;
 	cout << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+	vector<hexState> hexplace(nNode*nNode,EMPTY);
 	char flag, human, machine;
-	unsigned move, human_count = 0, machine_count = 0;
-	srand(static_cast<unsigned>(time(0)));
+	unsigned move, human_count = 0, machine_count = 0;//Dijkstra algorithm is not invoked untill either count >= nNode
+	srand(static_cast<unsigned>(time(0)));//seed the PRNG
 	cout << "which stone does you want? X or O" << endl;
 	cin >> human;
 	if (human == 'X')
@@ -154,16 +154,17 @@ void hexGraph::hex_game() {
 				else
 					cout << "your move is invalid, choose another hexagon:" << endl;
 			}
-			print();
-			if (human_count >= nNode && game_over(human)){
+			print(hexplace);
+			if (human_count >= nNode && game_over(human, hexplace)){
 				cout << "Congratulations! You win the game" << endl;
 				break;
 			}
-			flag = machine;
+			flag = machine;//machine round now!
 		}
 		else {//machine round
 			while (true) {
-				move = rand() % (nNode*nNode - 1);
+				move = rand() % (nNode*nNode - 1);//randomly select a move
+				//move = plausibile_move(machine, nNode*nNode - human_count - machine_count, 1000, hexplace);
 				if (hexplace[move] == EMPTY) {
 					if (machine == 'X')
 						hexplace[move] = XPLR;
@@ -173,16 +174,75 @@ void hexGraph::hex_game() {
 					break;
 				}
 			}
-			print();
-			if (machine_count >= nNode && game_over(machine)) {
+			print(hexplace);
+			if (machine_count >= nNode && game_over(machine, hexplace)) {
 				cout << "Unfortunately! The computer win the game" << endl;
 				break;
 			}
-			flag = human;
+			flag = human;//human round now!
 		}
 	}
 }
 
-hexGraph::~hexGraph()
-{
+unsigned hexGraph::plausibile_move(char stone, unsigned no_empty_squares, unsigned no_sim, vector<hexState>& hexplace) {
+	srand(static_cast<unsigned>(time(0)));//seed the PRNG
+	unsigned p_move, tmp_move;
+	double p_win = 0.0;
+	vector<hexState> hplace = hexplace, empty_sqrs;
+	vector<int> empty_indices;//a vector of indices
+	//find the indices of the empty squares
+	for (size_t i = 0; i < nNode*nNode; i++)
+		if (hplace[i] == EMPTY) {
+			empty_indices.push_back(i);
+		}
+	//prepare a vector that contains the right numbers of Xs and Os
+	if (stone == 'X') {
+		empty_sqrs.insert(empty_sqrs.begin(), ceil(1.0*(no_empty_squares-1) / 2), OPLR);
+		empty_sqrs.insert(empty_sqrs.end() - 1, (no_empty_squares-1) / 2, XPLR);
+	}
+	else {
+		empty_sqrs.insert(empty_sqrs.begin(), ceil(1.0*(no_empty_squares-1) / 2), XPLR);
+		empty_sqrs.insert(empty_sqrs.end(), (no_empty_squares-1) / 2, OPLR);
+	}
+	//select a plausible move
+	for (auto ind:empty_indices){
+		unsigned X_count = 0, O_count = 0;
+		tmp_move = ind;
+		if (stone == 'X') 
+			hplace[ind] = XPLR;
+		else 
+			hplace[ind] = OPLR;
+		//Now only use shuffle to simulate random moves, only the empty squares should be shuffled
+		for (size_t i = 0; i < no_sim; i++) {
+			random_shuffle(empty_sqrs.begin(), empty_sqrs.end());
+			//filling the hex board using the shuffled contents
+			vector<hexState> t = empty_sqrs;//temporary vector
+			for (auto ind : empty_indices) {
+				if (ind == tmp_move) continue;
+				hplace[ind] = t.back();
+				t.pop_back();
+			}
+			//print(hplace);
+			if (game_over('X', hplace))//should pass the board as well
+				X_count++;
+			else
+				O_count++;
+		}
+		if (stone == 'X') {
+			if (1.0*X_count / no_sim >= p_win) {
+				p_move = tmp_move;
+				p_win = 1.0*X_count / no_sim;
+			}
+		}
+		else {
+			if (1.0*O_count / no_sim >= p_win) {
+				p_move = tmp_move;
+				p_win = 1.0*O_count / no_sim;
+			}
+		}
+	}
+	return p_move;
+}
+
+hexGraph::~hexGraph(){
 }
