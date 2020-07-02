@@ -11,6 +11,7 @@ public:
 	void print(vector<hexState>&);
 	void hex_game();
 	bool game_over(char, vector<hexState>&);
+	bool is_connected(unsigned s, unsigned e, char, vector<hexState>&);// to check whether there is a path from s to e
 	unsigned plausibile_move(char, unsigned, unsigned, vector<hexState>&);//generate legal moves using monte carlo
 	~hexGraph();
 
