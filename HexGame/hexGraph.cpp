@@ -7,7 +7,7 @@ Implementation of the hex game:
 #include<iostream>
 #include<ctime>
 #include<random>
-#include <unordered_set>
+#include<unordered_set>
 
 hexGraph::hexGraph(unsigned n) {//construct the hex board with EMPTY squares
 	nNode = n;
@@ -62,7 +62,8 @@ void hexGraph::print(vector<hexState>& hexplace) {
 	}
 }
 
-bool hexGraph::is_connected(unsigned s, unsigned e, char stone, vector<hexState>& hexplace) {
+bool hexGraph::is_connected(vector<unsigned> s, vector<unsigned> e, char stone, vector<hexState>& hexplace) {
+	//implement Breadth First Search algorithm
 	unordered_set<unsigned> done_set, doing_set;
 	unsigned node;
 	hexState int_stone;
@@ -70,13 +71,13 @@ bool hexGraph::is_connected(unsigned s, unsigned e, char stone, vector<hexState>
 		int_stone = XPLR;
 	else
 		int_stone = OPLR;
-	doing_set.insert(s);
+	doing_set.insert(s.begin(),s.end());
 	while (doing_set.empty() != true) {
 		node = *doing_set.begin();
 		doing_set.erase(node);
 		for (auto v : edgelist[node])
 			if (hexplace[v] == int_stone && done_set.find(v) == done_set.end())
-				if (v == e)
+				if (find(e.begin(),e.end(),v) != e.end())
 					return true;
 				else
 					doing_set.insert(v);
@@ -111,10 +112,12 @@ bool hexGraph::game_over(char stone, vector<hexState>& hexplace) {
 	}
 	if (n_start.size() == 0 || n_end.size() == 0)
 		return false;//the game is for sure not over
-	for (auto x:n_start)
+	if (is_connected(n_start, n_end, stone, hexplace))
+		return true; 
+	/*for (auto x:n_start)
 		for (auto y:n_end)
 			if (is_connected(x, y, stone, hexplace))
-				return true;
+				return true;*/
 	return false;//nobody win the game
 }
 
